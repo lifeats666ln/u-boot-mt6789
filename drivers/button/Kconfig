@@ -39,6 +39,14 @@ config BUTTON_GPIO
 	  The GPIO driver must used driver model. Buttons are configured using
 	  the device tree.
 
+config BUTTON_MTK_KPD
+	bool "MediaTek keypad buttons"
+	depends on BUTTON
+	help
+	  Enable support for the power and vol up/down buttons on MTK phones that uses mtk-kpd
+          These are configured as Enter, Up and Down keys respectively allowing navigation of
+          bootmenu with buttons on device
+
 config BUTTON_QCOM_PMIC
 	bool "Qualcomm power button"
 	depends on BUTTON
