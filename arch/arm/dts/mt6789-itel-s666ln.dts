@@ -34,6 +34,34 @@
 		};
 	};
 
+	kp: kp@10010000 {
+		compatible = "mediatek,mtk-kpd";
+		reg = <0x0 0x10010000 0x0 0x1000>;
+
+		vol-up {
+			label = "Volume Up";
+			linux,code = <KEY_VOLUMEUP>;
+			mediatek,kp-key = <1>;
+		};
+
+		vol-down {
+			label = "Volume Down";
+			linux,code = <KEY_VOLUMEDOWN>;
+			mediatek,kp-key = <0>;
+		};
+	};
+
+	pwrapkeys: pwrap-keys@10026000 {
+		compatible = "mediatek,mt6789-pwrap-keys";
+		reg = <0x0 0x10026000 0x0 0x1000>;
+
+		power {
+			label = "Power";
+			linux,code = <KEY_POWER>;
+                        mediatek,pmic-key =  <1>;
+		};
+	};
+
 	memory {
 		device_type = "memory";
 		reg = <0x0 0x40000000 0x2 0x0>;
