@@ -108,6 +108,7 @@
 
 #define U3P_U2PHYDTM1			0x06C
 #define P2C_RG_UART_EN			BIT(16)
+#define P2C_FORCE_BVALID		BIT(11)
 #define P2C_FORCE_IDDIG			BIT(9)
 #define P2C_RG_VBUSVALID		BIT(5)
 #define P2C_RG_SESSEND			BIT(4)
@@ -245,6 +246,7 @@ struct tphy_pdata {
 	 * 48M PLL, fix it by switching PLL to 26M from default 48M
 	 */
 	bool sw_pll_48m_to_26m;
+	bool force_otg_vbus;
 };
 
 struct u2phy_banks {
@@ -351,8 +353,28 @@ static void u2_phy_instance_power_on(struct mtk_tphy *tphy,
 {
 	struct u2phy_banks *u2_banks = &instance->u2_banks;
 
-	clrbits_le32(u2_banks->com + U3P_U2PHYDTM0,
-		     P2C_RG_XCVRSEL | P2C_RG_DATAIN | P2C_DTM0_PART_MASK);
+	if (tphy->pdata->force_otg_vbus) {
+		/*
+		 * Wake USB2 PHY out of cold-boot suspend when booted on
+		 * battery without an active USB cable.
+		 */
+		setbits_le32(u2_banks->com + U3P_U2PHYDTM0, P2C_FORCE_SUSPENDM);
+		clrbits_le32(u2_banks->com + U3P_U2PHYDTM0, P2C_RG_SUSPENDM);
+		setbits_le32(u2_banks->com + U3P_U2PHYDTM0, P2C_RG_SUSPENDM);
+		udelay(50);
+		clrbits_le32(u2_banks->com + U3P_U2PHYDTM0,
+			     P2C_FORCE_SUSPENDM | P2C_RG_SUSPENDM |
+			     P2C_FORCE_UART_EN | P2C_RG_XCVRSEL |
+			     P2C_RG_DATAIN | P2C_DTM0_PART_MASK);
+		clrbits_le32(u2_banks->com + U3P_U2PHYDTM1, P2C_RG_UART_EN);
+		clrbits_le32(u2_banks->com + U3P_U2PHYACR4, P2C_U2_GPIO_CTR_MSK);
+		clrbits_le32(u2_banks->com + U3P_USBPHYACR6,
+			     PA6_RG_U2_BC11_SW_EN);
+	} else {
+		clrbits_le32(u2_banks->com + U3P_U2PHYDTM0,
+			     P2C_RG_XCVRSEL | P2C_RG_DATAIN |
+			     P2C_DTM0_PART_MASK);
+	}
 
 	/* Set FORCE modes for manual role switching */
 	setbits_le32(u2_banks->com + U3P_U2PHYDTM1, P2C_FORCE_IDPULLUP
@@ -368,6 +390,15 @@ static void u2_phy_instance_power_on(struct mtk_tphy *tphy,
 
 	clrsetbits_le32(u2_banks->com + U3P_U2PHYDTM1,
 			P2C_RG_SESSEND, P2C_RG_VBUSVALID | P2C_RG_AVALID);
+
+	if (tphy->pdata->force_otg_vbus) {
+		setbits_le32(u2_banks->com + U3P_U2PHYDTM1,
+			     P2C_RG_BVALID | P2C_RG_IDPULLUP |
+			     P2C_FORCE_VBUSVALID | P2C_FORCE_SESSEND |
+			     P2C_FORCE_BVALID | P2C_FORCE_AVALID |
+			     P2C_FORCE_IDPULLUP);
+		udelay(1000);
+	}
 
 	dev_dbg(tphy->dev, "%s(%d)\n", __func__, instance->index);
 }
@@ -385,7 +416,8 @@ static void u2_phy_instance_power_off(struct mtk_tphy *tphy,
 		     PA6_RG_U2_OTG_VBUSCMP_EN);
 
 	clrsetbits_le32(u2_banks->com + U3P_U2PHYDTM1,
-			P2C_RG_VBUSVALID | P2C_RG_AVALID, P2C_RG_SESSEND);
+			P2C_RG_VBUSVALID | P2C_RG_BVALID | P2C_RG_AVALID,
+			P2C_RG_SESSEND);
 
 	dev_dbg(tphy->dev, "%s(%d)\n", __func__, instance->index);
 }
@@ -914,6 +946,11 @@ static struct tphy_pdata tphy_v2_pdata = {
 	.version = MTK_TPHY_V2,
 };
 
+static struct tphy_pdata mt6789_pdata = {
+	.version = MTK_TPHY_V2,
+	.force_otg_vbus = true,
+};
+
 static struct tphy_pdata mt8195_pdata = {
 	.version = MTK_TPHY_V2,
 	.sw_pll_48m_to_26m = true,
@@ -927,6 +964,10 @@ static const struct udevice_id mtk_tphy_id_table[] = {
 	{
 		.compatible = "mediatek,generic-tphy-v2",
 		.data = (ulong)&tphy_v2_pdata,
+	},
+	{
+		.compatible = "mediatek,mt6789-tphy",
+		.data = (ulong)&mt6789_pdata,
 	},
 	{
 		.compatible = "mediatek,mt8195-tphy",
