@@ -56,6 +56,16 @@ config USB_MUSB_AM35X
 config USB_MUSB_DSPS
 	bool "TI DSPS platforms"
 
+config USB_MUSB_MTK
+	bool "Enable MediaTek generic MUSB DRC USB controller"
+	depends on ARCH_MEDIATEK && PHY
+	select USB_MUSB_PIO_ONLY
+	help
+	  Enable support for MediaTek MUSB OTG/peripheral controllers paired
+	  with the generic MediaTek T-PHY driver (e.g. MT6789 / Helio G99).
+	  This glue driver handles MediaTek L1 write-1-to-clear interrupt
+	  status registers, bulk clock control, and generic PHY lifecycle.
+
 config USB_MUSB_MT85XX
 	bool "Enable Mediatek MT85XX DRC USB controller"
 	depends on ARCH_MEDIATEK
