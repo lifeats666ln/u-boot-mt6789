@@ -5,6 +5,7 @@
 #include <asm/armv8/mmu.h>
 #include <asm/system.h>
 #include <asm/global_data.h>
+#include <linux/kernel.h>
 #include <linux/sizes.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -27,6 +28,12 @@ int dram_init(void)
 	gd->ram_size = get_ram_size((void *)gd->ram_base, SZ_2G);
 
 	return 0;
+}
+
+phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
+{
+	/* Keep relocation below wifi/ccci/SCP/atf-log no-map at 0xbf000000-0xc0000000 */
+	return min_t(phys_addr_t, gd->ram_top, 0xbf000000);
 }
 
 void reset_cpu(void)
