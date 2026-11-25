@@ -342,7 +342,7 @@
 		};
 
 		usb: usb0@11200000 {
-			compatible = "mediatek,mt8518-musb", "mediatek,mtk-musb";
+			compatible = "mediatek,mt6789-musb", "mediatek,mtk-musb";
 			reg = <0 0x11200000 0 0x10000>;
 			reg-names = "mac", "ippc";
 			interrupts = <GIC_SPI 128 IRQ_TYPE_LEVEL_HIGH 0>;
@@ -357,7 +357,7 @@
 		};
 
 		u2phy: t-phy@11f40000 {
-			compatible = "mediatek,generic-tphy-v2";
+			compatible = "mediatek,mt6789-tphy", "mediatek,generic-tphy-v2";
 			reg = <0 0x11f40000 0 0x1000>;
 			#address-cells = <2>;
 			#size-cells = <2>;
