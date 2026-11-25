@@ -343,29 +343,25 @@
 
 		usb: usb0@11200000 {
 			compatible = "mediatek,mt6789-musb", "mediatek,mtk-musb";
-			reg = <0 0x11200000 0 0x10000>;
-			reg-names = "mac", "ippc";
+			reg = <0x11200000 0x10000>;
+			reg-names = "mac";
 			interrupts = <GIC_SPI 128 IRQ_TYPE_LEVEL_HIGH 0>;
 			interrupt-names = "mc";
 			phys = <&u2port0 PHY_TYPE_USB2>;
 			clocks = <&clk26m>, <&clk26m>, <&clk26m>;
 			clock-names = "main", "mcu", "univpll";
-			#address-cells = <2>;
-			#size-cells = <2>;
-			ranges;
 			status = "disabled";
 		};
 
 		u2phy: t-phy@11f40000 {
 			compatible = "mediatek,mt6789-tphy", "mediatek,generic-tphy-v2";
-			reg = <0 0x11f40000 0 0x1000>;
-			#address-cells = <2>;
-			#size-cells = <2>;
-			ranges;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0x0 0x11f40000 0x1000>;
 			status = "okay";
 
 			u2port0: usb-phy@0 {
-				reg = <0 0x700>;
+				reg = <0x0 0x700>;
 				clocks = <&clk26m>;
 				clock-names = "ref";
 				#phy-cells = <1>;

@@ -5,11 +5,17 @@
 #include <init.h>
 #include <lmb.h>
 #include <log.h>
+#include <asm/io.h>
 #include <asm/armv8/mmu.h>
 #include <asm/system.h>
 #include <asm/global_data.h>
+#include <linux/bitops.h>
 #include <linux/kernel.h>
 #include <linux/sizes.h>
+
+#define INFRACFG_AO_BASE	0x10001000
+#define MODULE_SW_CG_2_CLR	0xa8
+#define SSUSB_CG		BIT(1)
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -60,6 +66,9 @@ static int mt6789_set_load_addr(const char *name, phys_size_t size)
 
 int board_late_init(void)
 {
+	/* clk-mt6789 is not built yet: open the SSUSB gate for fastboot */
+	writel(SSUSB_CG, INFRACFG_AO_BASE + MODULE_SW_CG_2_CLR);
+
 	/* lmb already holds U-Boot and the DT reserved-memory regions */
 	mt6789_set_load_addr("kernel_addr_r", SZ_128M);
 	mt6789_set_load_addr("ramdisk_addr_r", SZ_128M);
