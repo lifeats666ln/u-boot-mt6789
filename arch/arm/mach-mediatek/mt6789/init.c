@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0
 
+#include <env.h>
 #include <fdtdec.h>
 #include <init.h>
+#include <lmb.h>
+#include <log.h>
 #include <asm/armv8/mmu.h>
 #include <asm/system.h>
 #include <asm/global_data.h>
@@ -39,6 +42,35 @@ phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
 void reset_cpu(void)
 {
 	psci_system_reset();
+}
+
+static int mt6789_set_load_addr(const char *name, phys_size_t size)
+{
+	phys_addr_t addr;
+	int ret;
+
+	ret = lmb_alloc_mem(LMB_MEM_ALLOC_ANY, SZ_2M, &addr, size, LMB_NONE);
+	if (ret) {
+		log_warning("Cannot reserve memory for %s\n", name);
+		return ret;
+	}
+
+	return env_set_hex(name, addr);
+}
+
+int board_late_init(void)
+{
+	/* lmb already holds U-Boot and the DT reserved-memory regions */
+	mt6789_set_load_addr("kernel_addr_r", SZ_128M);
+	mt6789_set_load_addr("ramdisk_addr_r", SZ_128M);
+
+#ifdef CONFIG_FASTBOOT_BUF_SIZE
+	/* bootm parses Android boot images from ${loadaddr} */
+	if (!mt6789_set_load_addr("fastboot_addr_r", CONFIG_FASTBOOT_BUF_SIZE))
+		env_set("loadaddr", env_get("fastboot_addr_r"));
+#endif
+
+	return 0;
 }
 
 static struct mm_region vicky_mem_map[] = {
