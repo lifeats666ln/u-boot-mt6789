@@ -231,9 +231,13 @@ static int mtk_musb_probe(struct udevice *dev)
 			return ret;
 	} else {
 		pdata.mode = MUSB_PERIPHERAL;
-		host->host = musb_register(&pdata, &glue->dev, base);
+		host->host = musb_init_controller(&pdata, &glue->dev, base);
 		if (!host->host)
 			return -EIO;
+
+		ret = usb_add_gadget_udc(&glue->dev, &host->host->g);
+		if (ret)
+			return ret;
 	}
 
 	return 0;
@@ -245,6 +249,8 @@ static int mtk_musb_remove(struct udevice *dev)
 	struct musb_host_data *host = &glue->mdata;
 
 	if (host->host) {
+		if (!IS_ENABLED(CONFIG_USB_MUSB_HOST))
+			usb_del_gadget_udc(&host->host->g);
 		musb_stop(host->host);
 		free(host->host);
 		host->host = NULL;
@@ -254,6 +260,19 @@ static int mtk_musb_remove(struct udevice *dev)
 	return 0;
 }
 
+static int mtk_musb_gadget_handle_interrupts(struct udevice *dev)
+{
+	struct mtk_musb_glue *glue = dev_get_priv(dev);
+
+	glue->mdata.host->isr(0, glue->mdata.host);
+
+	return 0;
+}
+
+static const struct usb_gadget_generic_ops mtk_musb_gadget_ops = {
+	.handle_interrupts	= mtk_musb_gadget_handle_interrupts,
+};
+
 static const struct udevice_id mtk_musb_ids[] = {
 	{ .compatible = "mediatek,mtk-musb" },
 	{ .compatible = "mediatek,mt6789-musb" },
@@ -262,10 +281,13 @@ static const struct udevice_id mtk_musb_ids[] = {
 
 U_BOOT_DRIVER(mediatek_musb) = {
 	.name		= "mediatek_musb",
-	.id		= IS_ENABLED(CONFIG_USB_MUSB_HOST) ?
-			  UCLASS_USB : UCLASS_USB_GADGET_GENERIC,
-	.ops		= IS_ENABLED(CONFIG_USB_MUSB_HOST) ?
-			  &musb_usb_ops : NULL,
+#ifdef CONFIG_USB_MUSB_HOST
+	.id		= UCLASS_USB,
+	.ops		= &musb_usb_ops,
+#else
+	.id		= UCLASS_USB_GADGET_GENERIC,
+	.ops		= &mtk_musb_gadget_ops,
+#endif
 	.of_match	= mtk_musb_ids,
 	.probe		= mtk_musb_probe,
 	.remove		= mtk_musb_remove,
